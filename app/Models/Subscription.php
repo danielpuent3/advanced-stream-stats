@@ -12,13 +12,13 @@ class Subscription extends Model
 
     use HasFactory;
 
-    const ACTIVE = 'Active';
+    public const ACTIVE = 'Active';
 
-    const CANCELED = 'Canceled';
+    public const CANCELED = 'Canceled';
 
-    const EXPIRED = 'Expired';
+    public const EXPIRED = 'Expired';
 
-    const PAST_DUE = 'Past Due';
+    public const PAST_DUE = 'Past Due';
 
     public $fillable = [
         'external_subscription_id',
@@ -30,6 +30,7 @@ class Subscription extends Model
         'price',
         'starts_at',
         'next_billing_at',
+        'ends_at',
     ];
 
     public function user(): BelongsTo
@@ -40,6 +41,40 @@ class Subscription extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(SubscriptionPayments::class);
+    }
+
+    public function successfulPayment($nextBillingDate): bool
+    {
+        return $this->update([
+            'active' => true,
+            'status' => self::ACTIVE,
+            'next_billing_at' => $nextBillingDate,
+        ]);
+    }
+
+    public function cancelSubscription(): bool
+    {
+        return $this->update([
+            'active' => false,
+            'status' => self::CANCELED,
+        ]);
+    }
+
+    public function subscriptionExpired(): bool
+    {
+        return $this->update([
+            'active' => false,
+            'status' => self::EXPIRED,
+        ]);
+    }
+
+    public function subscriptionPastDue($nextBillingDate): bool
+    {
+        return $this->update([
+            'active' => false,
+            'status' => self::PAST_DUE,
+            'next_billing_at' => $nextBillingDate,
+        ]);
     }
 
     public static function statuses(): array
