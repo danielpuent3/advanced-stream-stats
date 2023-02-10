@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Services\SubscriptionService;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,6 +14,10 @@ use Inertia\Response;
 
 class ProfileController extends Controller
 {
+    public function __construct(private SubscriptionService $subscriptionService)
+    {
+    }
+
     /**
      * Display the user's profile form.
      */
@@ -21,6 +26,7 @@ class ProfileController extends Controller
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => session('status'),
+            'subscription' => $request->user()->getSubscription() ?: new \stdClass(),
         ]);
     }
 
@@ -59,5 +65,21 @@ class ProfileController extends Controller
         $request->session()->regenerateToken();
 
         return Redirect::to('/');
+    }
+
+    /**
+     * Delete the user's account.
+     */
+    public function cancelSubscription(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'password' => ['required', 'current-password'],
+        ]);
+
+        $user = $request->user();
+
+        $this->subscriptionService->cancel($user->getSubscription());
+
+        return Redirect::route('profile.edit');
     }
 }
